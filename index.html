@@ -2,109 +2,63 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game Hunter Pro | Buscador de Keys</title>
+    <title>Game Hunter Pro</title>
     <style>
-        :root {
-            --bg: #0d1117; --card: #161b22; --border: #30363d;
-            --primary: #58a6ff; --key: #d29922; --free: #238636; --text: #c9d1d9;
-        }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .container { max-width: 1000px; width: 100%; }
-        header { text-align: center; margin-bottom: 30px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
-        h1 { color: var(--primary); margin: 0; }
-        #status { font-size: 0.85rem; color: #8b949e; margin-top: 10px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; transition: 0.3s; }
-        .card:hover { border-color: var(--primary); transform: translateY(-3px); }
-        .badge { font-size: 0.7rem; font-weight: 800; padding: 4px 10px; border-radius: 4px; margin-bottom: 12px; width: fit-content; text-transform: uppercase; }
-        .badge-key { background: var(--key); color: #000; }
-        .badge-free { background: var(--free); color: #fff; }
-        .title { font-weight: 600; line-height: 1.4; margin-bottom: 15px; flex-grow: 1; }
-        .key-box { background: #000; border: 2px dashed var(--key); border-radius: 8px; padding: 12px; margin-bottom: 15px; text-align: center; cursor: pointer; }
-        .key-code { color: var(--key); font-family: monospace; font-size: 1.2rem; font-weight: bold; }
-        .key-hint { display: block; font-size: 0.65rem; color: #8b949e; margin-top: 5px; }
-        .btn { background: var(--primary); color: #0d1117; font-weight: 700; text-align: center; padding: 10px; border-radius: 6px; text-decoration: none; }
-        .loader { width: 30px; height: 30px; border: 3px solid #30363d; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s infinite linear; margin: 20px auto; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        body { font-family: sans-serif; background: #0d1117; color: #c9d1d9; text-align: center; padding: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
+        .card { background: #161b22; border: 1px solid #30363d; padding: 15px; border-radius: 8px; }
+        .key { color: #d29922; font-weight: bold; font-family: monospace; border: 1px dashed; padding: 5px; display: block; margin: 10px 0; }
+        .btn { background: #238636; color: white; text-decoration: none; padding: 8px 15px; border-radius: 5px; display: inline-block; }
     </style>
 </head>
 <body>
-
-<div class="container">
-    <header>
-        <h1>🎮 Game Hunter Pro</h1>
-        <div id="status">Conectando con servidores de Reddit...</div>
-        <div id="loader" class="loader"></div>
-    </header>
+    <h1>🎮 STEAM KEYS & FREE GAMES</h1>
+    <div id="status">Buscando ofertas...</div>
     <div id="game-grid" class="grid"></div>
-</div>
 
 <script>
-    // Usamos el endpoint /get de AllOrigins que devuelve un JSON
-    const PROXY = "https://api.allorigins.win/get?url=";
-    const FEEDS = [
-        'https://www.reddit.com/r/GameDeals/new.json?limit=50',
-        'https://www.reddit.com/r/FreeGameFindings/new.json?limit=50'
+    // Lista de proxies para rotar si uno falla
+    const PROXIES = [
+        "https://api.allorigins.win/get?url=",
+        "https://thingproxy.freeboard.io/fetch/"
     ];
 
-    function extractKey(text) {
-        // Formato XXXXX-XXXXX-XXXXX
-        const regex = /[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}/gi;
-        const found = text.match(regex);
-        return found ? found[0].toUpperCase() : null;
+    async function fetchData(url, proxyIndex = 0) {
+        try {
+            const response = await fetch(PROXIES[proxyIndex] + encodeURIComponent(url));
+            if (!response.ok) throw new Error();
+            const data = await response.json();
+            return JSON.parse(data.contents);
+        } catch (e) {
+            if (proxyIndex < PROXIES.length - 1) {
+                console.log("Rotando proxy...");
+                return fetchData(url, proxyIndex + 1);
+            }
+            throw e;
+        }
     }
 
     async function init() {
         const grid = document.getElementById('game-grid');
         const status = document.getElementById('status');
-        const loader = document.getElementById('loader');
-
         try {
-            let allPosts = [];
-            for (const url of FEEDS) {
-                const res = await fetch(PROXY + encodeURIComponent(url));
-                if (!res.ok) throw new Error();
-                const wrapper = await res.json();
-                const data = JSON.parse(wrapper.contents); // Extraemos el JSON real
-                allPosts = [...allPosts, ...data.data.children];
-            }
-
-            const deals = allPosts.filter(p => {
-                const t = p.data.title.toLowerCase();
-                return (t.includes('100%') || t.includes('free') || t.includes('key')) && !t.includes('expired');
-            });
-
-            loader.style.display = 'none';
-            status.innerText = `Búsqueda finalizada. ${deals.length} resultados encontrados.`;
-            grid.innerHTML = '';
-
-            deals.forEach(item => {
+            const data = await fetchData('https://www.reddit.com/r/FreeGameFindings/new.json?limit=30');
+            status.innerText = "Ofertas actualizadas";
+            grid.innerHTML = data.data.children.map(item => {
                 const d = item.data;
-                const key = extractKey(d.title) || extractKey(d.selftext || "");
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `
-                    <div class="badge ${key ? 'badge-key' : 'badge-free'}">${key ? '🔑 Key' : '🎁 Gratis'}</div>
-                    <div class="title">${d.title}</div>
-                    ${key ? `<div class="key-box" onclick="copyKey('${key}', this)"><span class="key-code">${key}</span><span class="key-hint">Clic para copiar</span></div>` : ''}
-                    <a href="${d.url}" target="_blank" class="btn">VER OFERTA</a>
+                const keyMatch = d.title.match(/[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}/);
+                return `
+                    <div class="card">
+                        <h3>${d.title}</h3>
+                        ${keyMatch ? `<span class="key">${keyMatch[0]}</span>` : ''}
+                        <a href="${d.url}" target="_blank" class="btn">Ir a la oferta</a>
+                    </div>
                 `;
-                grid.appendChild(card);
-            });
+            }).join('');
         } catch (e) {
-            loader.style.display = 'none';
-            status.innerHTML = "<b>Error de conexión.</b><br>Sube este cambio a GitHub y refresca con Ctrl+F5.";
+            status.innerText = "Error: Los servidores intermedios están ocupados. Refresca en 10 segundos.";
         }
     }
-
-    function copyKey(code, el) {
-        navigator.clipboard.writeText(code);
-        const hint = el.querySelector('.key-hint');
-        hint.innerText = "¡COPIADO!";
-        setTimeout(() => hint.innerText = "Clic para copiar", 2000);
-    }
-
     init();
 </script>
 </body>
