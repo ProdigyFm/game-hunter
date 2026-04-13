@@ -2,64 +2,129 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Game Hunter Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Hunter Ultra | Dashboard de Ofertas</title>
     <style>
-        body { font-family: sans-serif; background: #0d1117; color: #c9d1d9; text-align: center; padding: 20px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
-        .card { background: #161b22; border: 1px solid #30363d; padding: 15px; border-radius: 8px; }
-        .key { color: #d29922; font-weight: bold; font-family: monospace; border: 1px dashed; padding: 5px; display: block; margin: 10px 0; }
-        .btn { background: #238636; color: white; text-decoration: none; padding: 8px 15px; border-radius: 5px; display: inline-block; }
+        :root {
+            --bg: #0d1117; --card: #161b22; --border: #30363d;
+            --primary: #58a6ff; --accent: #238636; --text: #c9d1d9;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        header { text-align: center; margin-bottom: 30px; }
+        .controls { display: flex; gap: 10px; justify-content: center; margin-bottom: 30px; flex-wrap: wrap; }
+        
+        input, select { 
+            background: var(--card); border: 1px solid var(--border); color: white; 
+            padding: 10px 15px; border-radius: 6px; outline: none;
+        }
+        input:focus { border-color: var(--primary); }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .card { 
+            background: var(--card); border: 1px solid var(--border); border-radius: 12px; 
+            overflow: hidden; display: flex; flex-direction: column; transition: 0.2s;
+        }
+        .card:hover { transform: translateY(-5px); border-color: var(--primary); }
+        .card img { width: 100%; height: 140px; object-fit: cover; }
+        
+        .card-content { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; }
+        .price-tag { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+        .old-price { text-decoration: line-through; color: #8b949e; font-size: 0.9rem; }
+        .new-price { color: #39d353; font-weight: bold; font-size: 1.2rem; }
+        .free-badge { background: var(--accent); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; }
+
+        .btn { 
+            background: var(--primary); color: #0d1117; text-align: center; padding: 10px; 
+            border-radius: 6px; text-decoration: none; font-weight: bold; margin-top: auto;
+        }
+        .loader { width: 40px; height: 40px; border: 4px solid #30363d; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s infinite linear; margin: 50px auto; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <h1>🎮 STEAM KEYS & FREE GAMES</h1>
-    <div id="status">Buscando ofertas...</div>
+
+<div class="container">
+    <header>
+        <h1>🎮 Game Hunter Ultra</h1>
+        <p>Ofertas de Steam, Epic y más en tiempo real</p>
+    </header>
+
+    <div class="controls">
+        <input type="text" id="search" placeholder="Buscar juego..." oninput="filterGames()">
+        <select id="storeFilter" onchange="loadDeals()">
+            <option value="1">Solo Steam</option>
+            <option value="25">Solo Epic Games</option>
+            <option value="0">Todas las tiendas</option>
+        </select>
+        <select id="priceFilter" onchange="loadDeals()">
+            <option value="0">Solo Gratis ($0.00)</option>
+            <option value="15">Menos de $15</option>
+        </select>
+    </div>
+
+    <div id="loader" class="loader"></div>
     <div id="game-grid" class="grid"></div>
+</div>
 
 <script>
-    // Lista de proxies para rotar si uno falla
-    const PROXIES = [
-        "https://api.allorigins.win/get?url=",
-        "https://thingproxy.freeboard.io/fetch/"
-    ];
+    let allDeals = [];
 
-    async function fetchData(url, proxyIndex = 0) {
-        try {
-            const response = await fetch(PROXIES[proxyIndex] + encodeURIComponent(url));
-            if (!response.ok) throw new Error();
-            const data = await response.json();
-            return JSON.parse(data.contents);
-        } catch (e) {
-            if (proxyIndex < PROXIES.length - 1) {
-                console.log("Rotando proxy...");
-                return fetchData(url, proxyIndex + 1);
-            }
-            throw e;
-        }
-    }
-
-    async function init() {
+    async function loadDeals() {
         const grid = document.getElementById('game-grid');
-        const status = document.getElementById('status');
+        const loader = document.getElementById('loader');
+        const store = document.getElementById('storeFilter').value;
+        const maxPrice = document.getElementById('priceFilter').value;
+        
+        loader.style.display = 'block';
+        grid.innerHTML = '';
+
+        // API de CheapShark (no requiere Proxy para peticiones directas usualmente)
+        let url = `https://www.cheapshark.com/api/1.0/deals?upperPrice=${maxPrice}`;
+        if(store !== "0") url += `&storeID=${store}`;
+
         try {
-            const data = await fetchData('https://www.reddit.com/r/FreeGameFindings/new.json?limit=30');
-            status.innerText = "Ofertas actualizadas";
-            grid.innerHTML = data.data.children.map(item => {
-                const d = item.data;
-                const keyMatch = d.title.match(/[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}/);
-                return `
-                    <div class="card">
-                        <h3>${d.title}</h3>
-                        ${keyMatch ? `<span class="key">${keyMatch[0]}</span>` : ''}
-                        <a href="${d.url}" target="_blank" class="btn">Ir a la oferta</a>
-                    </div>
-                `;
-            }).join('');
+            const response = await fetch(url);
+            allDeals = await response.json();
+            renderGames(allDeals);
         } catch (e) {
-            status.innerText = "Error: Los servidores intermedios están ocupados. Refresca en 10 segundos.";
+            grid.innerHTML = "<p>Error al cargar datos. Intenta refrescar.</p>";
+        } finally {
+            loader.style.display = 'none';
         }
     }
-    init();
+
+    function renderGames(data) {
+        const grid = document.getElementById('game-grid');
+        grid.innerHTML = data.map(deal => `
+            <div class="card">
+                <img src="${deal.thumb}" alt="${deal.title}">
+                <div class="card-content">
+                    <div style="font-weight:bold; height: 45px; overflow:hidden;">${deal.title}</div>
+                    <div class="price-tag">
+                        <span class="old-price">$${deal.normalPrice}</span>
+                        <span class="new-price">${deal.salePrice == '0.00' ? '¡GRATIS!' : '$' + deal.salePrice}</span>
+                        ${deal.salePrice == '0.00' ? '<span class="free-badge">GIFT</span>' : ''}
+                    </div>
+                    <div style="font-size: 0.8rem; color: #8b949e; margin-bottom: 15px;">
+                        Ahorro: ${Math.round(deal.savings)}%
+                    </div>
+                    <a href="https://www.cheapshark.com/redirect?dealID=${deal.dealID}" target="_blank" class="btn">OBTENER</a>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function filterGames() {
+        const query = document.getElementById('search').value.toLowerCase();
+        const filtered = allDeals.filter(d => d.title.toLowerCase().includes(query));
+        renderGames(filtered);
+    }
+
+    // Cargar al inicio
+    loadDeals();
 </script>
+
 </body>
 </html>
