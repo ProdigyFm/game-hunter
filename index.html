@@ -3,127 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game Hunter Ultra | Dashboard de Ofertas</title>
+    <title>Universal Key Hunter | Live Tracker</title>
     <style>
         :root {
-            --bg: #0d1117; --card: #161b22; --border: #30363d;
-            --primary: #58a6ff; --accent: #238636; --text: #c9d1d9;
+            --bg: #0a0c10; --card: #161b22; --border: #30363d;
+            --primary: #58a6ff; --key-ui: #f29100; --text: #c9d1d9;
         }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .dashboard { max-width: 1100px; margin: 0 auto; }
         
-        header { text-align: center; margin-bottom: 30px; }
-        .controls { display: flex; gap: 10px; justify-content: center; margin-bottom: 30px; flex-wrap: wrap; }
-        
-        input, select { 
-            background: var(--card); border: 1px solid var(--border); color: white; 
-            padding: 10px 15px; border-radius: 6px; outline: none;
+        .header-status { 
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid var(--border); padding-bottom: 15px; margin-bottom: 25px;
         }
-        input:focus { border-color: var(--primary); }
+        .live-indicator { color: #39d353; font-size: 0.8rem; font-weight: bold; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-        .card { 
-            background: var(--card); border: 1px solid var(--border); border-radius: 12px; 
-            overflow: hidden; display: flex; flex-direction: column; transition: 0.2s;
-        }
-        .card:hover { transform: translateY(-5px); border-color: var(--primary); }
-        .card img { width: 100%; height: 140px; object-fit: cover; }
+        .feed-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; }
         
-        .card-content { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; }
-        .price-tag { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
-        .old-price { text-decoration: line-through; color: #8b949e; font-size: 0.9rem; }
-        .new-price { color: #39d353; font-weight: bold; font-size: 1.2rem; }
-        .free-badge { background: var(--accent); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; }
-
-        .btn { 
-            background: var(--primary); color: #0d1117; text-align: center; padding: 10px; 
-            border-radius: 6px; text-decoration: none; font-weight: bold; margin-top: auto;
+        .entry { 
+            background: var(--card); border: 1px solid var(--border); border-radius: 10px; 
+            padding: 15px; position: relative; transition: 0.2s;
         }
-        .loader { width: 40px; height: 40px; border: 4px solid #30363d; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s infinite linear; margin: 50px auto; }
+        .entry:hover { border-color: var(--primary); background: #1c2128; }
+        
+        .time-tag { font-size: 0.7rem; color: var(--primary); text-transform: uppercase; font-weight: bold; }
+        .source-tag { font-size: 0.7rem; background: #30363d; padding: 2px 6px; border-radius: 4px; margin-left: 10px; }
+        
+        .entry-title { margin: 10px 0; font-size: 0.95rem; line-height: 1.4; font-weight: 500; }
+        
+        .key-found { 
+            background: rgba(242, 145, 0, 0.1); border: 1px dashed var(--key-ui);
+            padding: 10px; border-radius: 6px; margin: 10px 0; text-align: center;
+        }
+        .key-text { color: var(--key-ui); font-family: 'Courier New', monospace; font-weight: bold; font-size: 1.1rem; }
+
+        .btn-claim { 
+            display: block; text-align: center; background: var(--primary); color: #0d1117;
+            padding: 8px; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 0.8rem;
+        }
+        .loader { width: 30px; height: 30px; border: 3px solid #30363d; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s infinite linear; margin: 20px auto; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <h1>🎮 Game Hunter Ultra</h1>
-        <p>Ofertas de Steam, Epic y más en tiempo real</p>
-    </header>
-
-    <div class="controls">
-        <input type="text" id="search" placeholder="Buscar juego..." oninput="filterGames()">
-        <select id="storeFilter" onchange="loadDeals()">
-            <option value="1">Solo Steam</option>
-            <option value="25">Solo Epic Games</option>
-            <option value="0">Todas las tiendas</option>
-        </select>
-        <select id="priceFilter" onchange="loadDeals()">
-            <option value="0">Solo Gratis ($0.00)</option>
-            <option value="15">Menos de $15</option>
-        </select>
+<div class="dashboard">
+    <div class="header-status">
+        <div>
+            <h1 style="margin:0; font-size: 1.5rem;">Universal Key Hunter</h1>
+            <span style="font-size: 0.8rem; color: #8b949e;">Escaneando: Reddit, SteamCommunity, Epic, Twitter y Foros</span>
+        </div>
+        <div class="live-indicator">● LIVE SCANNING</div>
     </div>
 
     <div id="loader" class="loader"></div>
-    <div id="game-grid" class="grid"></div>
+    <div id="feed" class="feed-grid"></div>
 </div>
 
 <script>
-    let allDeals = [];
+    const PROXY = "https://api.allorigins.win/get?url=";
+    
+    // Lista de fuentes RSS/JSON que cubren casi toda la web de ofertas
+    const SOURCES = [
+        { name: 'Reddit Deals', url: 'https://www.reddit.com/r/GameDeals/new.json?limit=25' },
+        { name: 'Free Steam', url: 'https://www.reddit.com/r/FreeGamesOnSteam/new.json?limit=25' },
+        { name: 'Epic Giveaways', url: 'https://www.reddit.com/r/EpicGamesPC/new.json?limit=10' },
+        { name: 'Foros Vandal/Gamer', url: 'https://www.reddit.com/r/vandal/new.json?limit=5' } // Ejemplo de comunidad hispana
+    ];
 
-    async function loadDeals() {
-        const grid = document.getElementById('game-grid');
+    async function fetchUniversal() {
+        const feedEl = document.getElementById('feed');
         const loader = document.getElementById('loader');
-        const store = document.getElementById('storeFilter').value;
-        const maxPrice = document.getElementById('priceFilter').value;
-        
-        loader.style.display = 'block';
-        grid.innerHTML = '';
-
-        // API de CheapShark (no requiere Proxy para peticiones directas usualmente)
-        let url = `https://www.cheapshark.com/api/1.0/deals?upperPrice=${maxPrice}`;
-        if(store !== "0") url += `&storeID=${store}`;
+        let masterList = [];
 
         try {
-            const response = await fetch(url);
-            allDeals = await response.json();
-            renderGames(allDeals);
-        } catch (e) {
-            grid.innerHTML = "<p>Error al cargar datos. Intenta refrescar.</p>";
-        } finally {
+            for (const src of SOURCES) {
+                const response = await fetch(PROXY + encodeURIComponent(src.url));
+                const json = await response.json();
+                const data = JSON.parse(json.contents);
+                
+                const posts = data.data.children.map(p => ({
+                    title: p.data.title,
+                    url: p.data.url,
+                    created: p.data.created_utc,
+                    source: src.name,
+                    text: p.data.selftext || ""
+                }));
+                masterList = [...masterList, ...posts];
+            }
+
+            // PRIORIDAD: Ordenar por fecha (más nuevos primero)
+            masterList.sort((a, b) => b.created - a.created);
+
             loader.style.display = 'none';
+            feedEl.innerHTML = masterList.map(item => {
+                const key = extractKey(item.title + " " + item.text);
+                const timeStr = new Date(item.created * 1000).toLocaleTimeString();
+                
+                return `
+                    <div class="entry">
+                        <span class="time-tag">${timeStr}</span>
+                        <span class="source-tag">${item.source}</span>
+                        <div class="entry-title">${item.title}</div>
+                        ${key ? `
+                            <div class="key-found">
+                                <span style="font-size:0.6rem; display:block; color:#8b949e;">KEY DETECTADA</span>
+                                <span class="key-text">${key}</span>
+                            </div>
+                        ` : ''}
+                        <a href="${item.url}" target="_blank" class="btn-claim">VER POST ORIGINAL</a>
+                    </div>
+                `;
+            }).join('');
+
+        } catch (e) {
+            console.error(e);
+            loader.innerHTML = "Error de red. Reintentando...";
         }
     }
 
-    function renderGames(data) {
-        const grid = document.getElementById('game-grid');
-        grid.innerHTML = data.map(deal => `
-            <div class="card">
-                <img src="${deal.thumb}" alt="${deal.title}">
-                <div class="card-content">
-                    <div style="font-weight:bold; height: 45px; overflow:hidden;">${deal.title}</div>
-                    <div class="price-tag">
-                        <span class="old-price">$${deal.normalPrice}</span>
-                        <span class="new-price">${deal.salePrice == '0.00' ? '¡GRATIS!' : '$' + deal.salePrice}</span>
-                        ${deal.salePrice == '0.00' ? '<span class="free-badge">GIFT</span>' : ''}
-                    </div>
-                    <div style="font-size: 0.8rem; color: #8b949e; margin-bottom: 15px;">
-                        Ahorro: ${Math.round(deal.savings)}%
-                    </div>
-                    <a href="https://www.cheapshark.com/redirect?dealID=${deal.dealID}" target="_blank" class="btn">OBTENER</a>
-                </div>
-            </div>
-        `).join('');
+    function extractKey(str) {
+        // Regex para Steam Keys (XXXXX-XXXXX-XXXXX)
+        const regex = /[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}/gi;
+        const match = str.match(regex);
+        return match ? match[0] : null;
     }
 
-    function filterGames() {
-        const query = document.getElementById('search').value.toLowerCase();
-        const filtered = allDeals.filter(d => d.title.toLowerCase().includes(query));
-        renderGames(filtered);
-    }
-
-    // Cargar al inicio
-    loadDeals();
+    // Ejecutar y refrescar cada 5 minutos automáticamente
+    fetchUniversal();
+    setInterval(fetchUniversal, 300000);
 </script>
 
 </body>
