@@ -3,137 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Universal Key Hunter | Live Tracker</title>
+    <title>Game Hunter Pro | Universal Tracker</title>
     <style>
         :root {
-            --bg: #0a0c10; --card: #161b22; --border: #30363d;
-            --primary: #58a6ff; --key-ui: #f29100; --text: #c9d1d9;
+            --bg: #0d1117; --card: #161b22; --border: #30363d;
+            --primary: #58a6ff; --steam: #1b2838; --epic: #2a2a2a;
+            --key-color: #f29100; --text: #c9d1d9;
         }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        .dashboard { max-width: 1100px; margin: 0 auto; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
         
-        .header-status { 
-            display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 2px solid var(--border); padding-bottom: 15px; margin-bottom: 25px;
-        }
-        .live-indicator { color: #39d353; font-size: 0.8rem; font-weight: bold; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        /* Header & Stats */
+        header { border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .live-status { color: #39d353; font-size: 0.8rem; font-weight: bold; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-        .feed-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; }
-        
-        .entry { 
-            background: var(--card); border: 1px solid var(--border); border-radius: 10px; 
-            padding: 15px; position: relative; transition: 0.2s;
-        }
-        .entry:hover { border-color: var(--primary); background: #1c2128; }
-        
-        .time-tag { font-size: 0.7rem; color: var(--primary); text-transform: uppercase; font-weight: bold; }
-        .source-tag { font-size: 0.7rem; background: #30363d; padding: 2px 6px; border-radius: 4px; margin-left: 10px; }
-        
-        .entry-title { margin: 10px 0; font-size: 0.95rem; line-height: 1.4; font-weight: 500; }
-        
-        .key-found { 
-            background: rgba(242, 145, 0, 0.1); border: 1px dashed var(--key-ui);
-            padding: 10px; border-radius: 6px; margin: 10px 0; text-align: center;
-        }
-        .key-text { color: var(--key-ui); font-family: 'Courier New', monospace; font-weight: bold; font-size: 1.1rem; }
+        /* Controls */
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        input, select { background: var(--card); border: 1px solid var(--border); color: white; padding: 12px; border-radius: 6px; outline: none; transition: 0.2s; }
+        input:focus { border-color: var(--primary); }
 
-        .btn-claim { 
-            display: block; text-align: center; background: var(--primary); color: #0d1117;
-            padding: 8px; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 0.8rem;
-        }
-        .loader { width: 30px; height: 30px; border: 3px solid #30363d; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s infinite linear; margin: 20px auto; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        /* Grid System */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+        
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; transition: 0.3s; position: relative; }
+        .card:hover { transform: translateY(-5px); border-color: var(--primary); box-shadow: 0 10px 20px rgba(0,0,0,0.5); }
+        
+        .card-img { width: 100%; height: 150px; object-fit: cover; background: #000; }
+        .card-body { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; }
+        
+        .badge { font-size: 0.7rem; font-weight: bold; padding: 4px 8px; border-radius: 4px; margin-bottom: 10px; width: fit-content; text-transform: uppercase; }
+        .badge-new { background: var(--primary); color: #000; }
+        .badge-key { background: var(--key-color); color: #000; }
+
+        .title { font-weight: 600; font-size: 1rem; margin-bottom: 10px; line-height: 1.3; color: #fff; }
+        
+        /* Key Display */
+        .key-container { background: rgba(242, 145, 0, 0.1); border: 1px dashed var(--key-color); border-radius: 6px; padding: 10px; margin: 10px 0; text-align: center; cursor: pointer; }
+        .key-code { font-family: 'Courier New', monospace; font-weight: bold; color: var(--key-color); font-size: 1.1rem; }
+
+        .price-row { display: flex; align-items: center; gap: 10px; margin-top: auto; padding-top: 15px; }
+        .new-price { color: #39d353; font-weight: bold; font-size: 1.2rem; }
+        .old-price { text-decoration: line-through; color: #8b949e; font-size: 0.9rem; }
+
+        .btn { background: var(--primary); color: #0d1117; text-align: center; padding: 10px; border-radius: 6px; text-decoration: none; font-weight: bold; margin-top: 15px; font-size: 0.9rem; }
+        
+        #loader { text-align: center; padding: 50px; font-weight: bold; color: var(--primary); }
     </style>
 </head>
 <body>
 
-<div class="dashboard">
-    <div class="header-status">
+<div class="container">
+    <header>
         <div>
-            <h1 style="margin:0; font-size: 1.5rem;">Universal Key Hunter</h1>
-            <span style="font-size: 0.8rem; color: #8b949e;">Escaneando: Reddit, SteamCommunity, Epic, Twitter y Foros</span>
+            <h1 style="margin:0;">Game Hunter Ultra</h1>
+            <p style="margin:5px 0 0; color:#8b949e; font-size:0.9rem;">Keys de Steam y Ofertas Globales en tiempo real</p>
         </div>
-        <div class="live-indicator">● LIVE SCANNING</div>
+        <div class="live-status">● ESCANEANDO EN VIVO</div>
+    </header>
+
+    <div class="controls">
+        <input type="text" id="searchInput" placeholder="Filtrar por nombre (ej: Steam)..." oninput="filterDisplay()">
+        <select id="sourceSelect" onchange="initScan()">
+            <option value="all">Todas las fuentes</option>
+            <option value="keys">Solo Keys Detectadas</option>
+            <option value="stores">Solo Tiendas Oficiales</option>
+        </select>
+        <button onclick="initScan()" style="cursor:pointer; background:var(--primary); border:none; border-radius:6px; font-weight:bold;">Refrescar</button>
     </div>
 
-    <div id="loader" class="loader"></div>
-    <div id="feed" class="feed-grid"></div>
+    <div id="loader">Cargando datos de ingeniería...</div>
+    <div id="main-grid" class="grid"></div>
 </div>
 
 <script>
-    const PROXY = "https://api.allorigins.win/get?url=";
-    
-    // Lista de fuentes RSS/JSON que cubren casi toda la web de ofertas
-    const SOURCES = [
-        { name: 'Reddit Deals', url: 'https://www.reddit.com/r/GameDeals/new.json?limit=25' },
-        { name: 'Free Steam', url: 'https://www.reddit.com/r/FreeGamesOnSteam/new.json?limit=25' },
-        { name: 'Epic Giveaways', url: 'https://www.reddit.com/r/EpicGamesPC/new.json?limit=10' },
-        { name: 'Foros Vandal/Gamer', url: 'https://www.reddit.com/r/vandal/new.json?limit=5' } // Ejemplo de comunidad hispana
-    ];
+    const ALL_ORIGINS = "https://api.allorigins.win/get?url=";
+    let masterData = [];
 
-    async function fetchUniversal() {
-        const feedEl = document.getElementById('feed');
-        const loader = document.getElementById('loader');
-        let masterList = [];
-
-        try {
-            for (const src of SOURCES) {
-                const response = await fetch(PROXY + encodeURIComponent(src.url));
-                const json = await response.json();
-                const data = JSON.parse(json.contents);
-                
-                const posts = data.data.children.map(p => ({
-                    title: p.data.title,
-                    url: p.data.url,
-                    created: p.data.created_utc,
-                    source: src.name,
-                    text: p.data.selftext || ""
-                }));
-                masterList = [...masterList, ...posts];
-            }
-
-            // PRIORIDAD: Ordenar por fecha (más nuevos primero)
-            masterList.sort((a, b) => b.created - a.created);
-
-            loader.style.display = 'none';
-            feedEl.innerHTML = masterList.map(item => {
-                const key = extractKey(item.title + " " + item.text);
-                const timeStr = new Date(item.created * 1000).toLocaleTimeString();
-                
-                return `
-                    <div class="entry">
-                        <span class="time-tag">${timeStr}</span>
-                        <span class="source-tag">${item.source}</span>
-                        <div class="entry-title">${item.title}</div>
-                        ${key ? `
-                            <div class="key-found">
-                                <span style="font-size:0.6rem; display:block; color:#8b949e;">KEY DETECTADA</span>
-                                <span class="key-text">${key}</span>
-                            </div>
-                        ` : ''}
-                        <a href="${item.url}" target="_blank" class="btn-claim">VER POST ORIGINAL</a>
-                    </div>
-                `;
-            }).join('');
-
-        } catch (e) {
-            console.error(e);
-            loader.innerHTML = "Error de red. Reintentando...";
-        }
-    }
-
-    function extractKey(str) {
-        // Regex para Steam Keys (XXXXX-XXXXX-XXXXX)
+    // 1. Detección Universal de Keys (Regex avanzado)
+    function findKey(text) {
         const regex = /[A-Z0-9]{5}-[A-Z0-9]{5}-[A-Z0-9]{5}/gi;
-        const match = str.match(regex);
-        return match ? match[0] : null;
+        const matches = text.match(regex);
+        return matches ? matches[0].toUpperCase() : null;
     }
 
-    // Ejecutar y refrescar cada 5 minutos automáticamente
-    fetchUniversal();
-    setInterval(fetchUniversal, 300000);
-</script>
+    // 2. Escaneo de Reddit y Foros (Keys y Regalos)
+    async function scanReddit() {
+        const feeds = [
+            'https://www.reddit.com/r/GameDeals/new.json?limit=30',
+            'https://www.reddit.com/r/FreeGameFindings/new.json?limit=30',
+            'https://www.reddit.com/r/FreeGamesOnSteam/new.json?limit=30'
+        ];
+        
+        let results = [];
+        for (const url of feeds) {
+            try {
+                const resp = await fetch(ALL_ORIGINS + encodeURIComponent(url));
+                const json = await resp.json();
+                const content = JSON.parse(json.contents);
+                content.data.children.forEach(post => {
+                    const d = post.data;
+                    results.push({
+                        title: d.title,
+                        url: d.url,
+                        img: d.thumbnail.startsWith('http') ? d.thumbnail : 'https://via.placeholder.com/300x150/161b22/58a6ff?text=Oferta+Detectada',
+                        price: "GRATIS",
+                        oldPrice: null,
+                        type: 'social',
+                        key: findKey(d.title + " " + (d.selftext || "")),
+                        time: d.created_utc
+                    });
+                });
+            } catch (e) { console.error("Error en feed:", url); }
+        }
+        return results;
+    }
 
+    // 3. Escaneo de API de Tiendas (CheapShark)
+    async function scanStores() {
+        try {
+            const resp = await fetch('https://www.cheapshark.com/api/1.0/deals?upperPrice=0');
+            const data = await resp.json();
+            return data.map(d => ({
+                title: d.title,
+                url: `https://www.cheapshark.com/redirect?dealID=${d.dealID}`,
+                img: d.thumb,
+                price: d.salePrice == "0.00" ? "GRATIS" : `$${d.salePrice}`,
+                oldPrice: `$${d.normalPrice}`,
+                type: 'store',
+                key: null,
+                time: Date.now() / 1000
+            }));
+        } catch (e) { return []; }
+    }
+
+    // 4. Inicialización y Renderizado
+    async function initScan() {
+        document.getElementById('loader').style.display = 'block';
+        document.getElementById('main-grid').innerHTML = '';
+        
+        const redditPosts = await scanReddit();
+        const storePosts = await scanStores();
+        
+        masterData = [...redditPosts, ...storePosts];
+        
+        // Prioridad: Más nuevos primero (UTC)
+        masterData.sort((a, b) => b.time - a.time);
+        
+        filterDisplay();
+        document.getElementById('loader').style.display = 'none';
+    }
+
+    function filterDisplay() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const source = document.getElementById('sourceSelect').value;
+        const grid = document.getElementById('main-grid');
+        
+        const filtered = masterData.filter(item => {
+            const matchesSearch = item.title.toLowerCase().includes(query);
+            if (source === 'keys') return matchesSearch && item.key;
+            if (source === 'stores') return matchesSearch && item.type === 'store';
+            return matchesSearch;
+        });
+
+        grid.innerHTML = filtered.map(item => `
+            <div class="card">
+                <img src="${item.img}" class="card-img" alt="banner">
+                <div class="card-body">
+                    <div class="badge ${item.key ? 'badge-key' : 'badge-new'}">
+                        ${item.key ? '🔑 KEY STEAM' : '🎁 OFERTA'}
+                    </div>
+                    <div class="title">${item.title}</div>
+                    
+                    ${item.key ? `
+                        <div class="key-container" onclick="copyKey('${item.key}', this)">
+                            <div style="font-size:0.6rem; color:#8b949e;">CLAVE DETECTADA</div>
+                            <div class="key-code">${item.key}</div>
+                        </div>
+                    ` : ''}
+
+                    <div class="price-row">
+                        <span class="new-price">${item.price}</span>
+                        ${item.oldPrice ? `<span class="old-price">${item.oldPrice}</span>` : ''}
+                    </div>
+                    
+                    <a href="${item.url}" target="_blank" class="btn">RECLAMAR AHORA</a>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function copyKey(key, el) {
+        navigator.clipboard.writeText(key);
+        const original = el.innerHTML;
+        el.innerHTML = '<div style="color:#39d353; font-weight:bold; padding:10px;">¡COPIADO AL PORTAPAPELES!</div>';
+        setTimeout(() => el.innerHTML = original, 2000);
+    }
+
+    initScan();
+    // Auto-refrescar cada 5 minutos
+    setInterval(initScan, 300000);
+</script>
 </body>
 </html>
